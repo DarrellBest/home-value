@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Home Value Predictor</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/style.css" />
+  </head>
+  <body>
+    <header>
+      <h1 class="page-title">Home Value Predictor</h1>
+      <div class="status-pill" id="hv-status-pill">
+        <span id="hv-refresh-status">Loading...</span>
+      </div>
+    </header>
+
+    <main class="hv-main">
+      <section class="lcars-topbar">
+        <div class="lcars-pill left">LCARS</div>
+        <div class="lcars-title-block">
+          <h2>2919 Wahoo Way // Alexandria VA 22306</h2>
+          <p>Real Estate Telemetry, Confidence Bands, LTV/PMI Guidance</p>
+        </div>
+        <div class="lcars-pill right">MC-22306</div>
+      </section>
+
+      <section class="hv-grid">
+        <article class="hv-panel p-orange">
+          <h3>Value Estimate</h3>
+          <div class="big-value" id="estimate-value">$-</div>
+          <div class="confidence" id="estimate-range">Range: -</div>
+          <div class="statline">
+            <span>Confidence</span>
+            <strong id="confidence-pct">-%</strong>
+          </div>
+          <div class="statline">
+            <span>Method</span>
+            <strong id="valuation-method">-</strong>
+          </div>
+          <div class="statline">
+            <span>Last Refresh</span>
+            <strong id="last-refresh">-</strong>
+          </div>
+          <div class="actions">
+            <button id="manual-refresh-btn" class="lcars-btn">Refresh Now</button>
+          </div>
+        </article>
+
+        <article class="hv-panel p-blue">
+          <h3>LTV + PMI</h3>
+          <div class="statline">
+            <span>Current Balance</span>
+            <strong id="current-balance">$-</strong>
+          </div>
+          <div class="statline">
+            <span>Current LTV</span>
+            <strong id="ltv-ratio">-%</strong>
+          </div>
+          <div class="statline">
+            <span>80% LTV Home Value</span>
+            <strong id="pmi-target">$-</strong>
+          </div>
+          <div class="statline">
+            <span>Gap To 80% Threshold</span>
+            <strong id="pmi-gap">$-</strong>
+          </div>
+        </article>
+
+        <article class="hv-panel p-purple">
+          <h3>Property Profile</h3>
+          <div class="statline">
+            <span>Address</span>
+            <strong id="property-address">-</strong>
+          </div>
+          <div class="statline">
+            <span>Square Feet</span>
+            <strong id="property-sqft">-</strong>
+          </div>
+          <div class="statline">
+            <span>Year Built</span>
+            <strong id="property-year">-</strong>
+          </div>
+          <div class="statline">
+            <span>Alexandria Median</span>
+            <strong id="market-median">$-</strong>
+          </div>
+          <div class="statline">
+            <span>YoY Change</span>
+            <strong id="market-yoy">-%</strong>
+          </div>
+        </article>
+
+        <article class="hv-panel p-cyan">
+          <h3>Market Source Telemetry</h3>
+          <div id="source-list" class="source-list"></div>
+        </article>
+
+        <article class="hv-panel p-purple full">
+          <h3>ML Prediction Intervals</h3>
+          <div class="interval-grid" id="interval-grid">
+            <div class="interval-card">
+              <div class="interval-label">90% Prediction Interval</div>
+              <div class="interval-range" id="pred-interval-90">-</div>
+            </div>
+            <div class="interval-card">
+              <div class="interval-label">80% Confidence Interval</div>
+              <div class="interval-range" id="conf-interval-80">-</div>
+            </div>
+          </div>
+          <div class="stats-row">
+            <div class="statline"><span>Weighted Std Dev</span><strong id="ml-stddev">-</strong></div>
+            <div class="statline"><span>Effective Sample Size</span><strong id="ml-ess">-</strong></div>
+            <div class="statline"><span>Coeff of Variation</span><strong id="ml-cv">-</strong></div>
+            <div class="statline"><span>Seasonal Factor</span><strong id="ml-seasonal">-</strong></div>
+          </div>
+        </article>
+
+        <article class="hv-panel p-cyan full">
+          <h3>Comp Similarity Scores (ML Engine)</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Address</th>
+                  <th>Raw Price</th>
+                  <th>Adjusted Price</th>
+                  <th>Similarity</th>
+                  <th>Type</th>
+                </tr>
+              </thead>
+              <tbody id="comp-scores-table"></tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="hv-panel p-orange full">
+          <h3>Comparable Sales</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Address</th>
+                  <th>Price</th>
+                  <th>Closed</th>
+                  <th>Source</th>
+                </tr>
+              </thead>
+              <tbody id="sales-table"></tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="hv-panel p-blue full">
+          <h3>Current Listings</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Address</th>
+                  <th>List Price</th>
+                  <th>Listed</th>
+                  <th>Source</th>
+                </tr>
+              </thead>
+              <tbody id="listing-table"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>
