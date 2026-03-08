@@ -3,3 +3,7 @@ __pycache__/
 *.pyc
 data/home-value-cache.json
 .env
+data/
+catboost_info/
+*.cbm
+*.log

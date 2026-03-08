@@ -121,20 +121,214 @@
           </div>
         </article>
 
+        <article class="hv-panel p-orange full">
+          <h3>Component Accuracy Comparison</h3>
+          <div class="component-metrics-grid">
+            <div class="component-metric-card">
+              <h4>Comp Engine</h4>
+              <div class="component-metric-big" id="cm-comp-mape">-</div>
+              <div class="component-metric-label">MAPE</div>
+              <div class="stats-row">
+                <div class="statline"><span>RMSE</span><strong id="cm-comp-rmse">-</strong></div>
+                <div class="statline"><span>MAE</span><strong id="cm-comp-mae">-</strong></div>
+                <div class="statline"><span>R²</span><strong id="cm-comp-r2">-</strong></div>
+                <div class="statline"><span>Evaluated</span><strong id="cm-comp-n">-</strong></div>
+              </div>
+            </div>
+            <div class="component-metric-card">
+              <h4>CatBoost</h4>
+              <div class="component-metric-big" id="cm-cat-mape">-</div>
+              <div class="component-metric-label">MAPE</div>
+              <div class="stats-row">
+                <div class="statline"><span>RMSE</span><strong id="cm-cat-rmse">-</strong></div>
+                <div class="statline"><span>MAE</span><strong id="cm-cat-mae">-</strong></div>
+                <div class="statline"><span>R²</span><strong id="cm-cat-r2">-</strong></div>
+                <div class="statline"><span>Evaluated</span><strong id="cm-cat-n">-</strong></div>
+              </div>
+            </div>
+            <div class="component-metric-card">
+              <h4>Final Blend</h4>
+              <div class="component-metric-big" id="cm-blend-mape">-</div>
+              <div class="component-metric-label">MAPE</div>
+              <div class="stats-row">
+                <div class="statline"><span>RMSE</span><strong id="cm-blend-rmse">-</strong></div>
+                <div class="statline"><span>MAE</span><strong id="cm-blend-mae">-</strong></div>
+                <div class="statline"><span>R²</span><strong id="cm-blend-r2">-</strong></div>
+                <div class="statline"><span>Evaluated</span><strong id="cm-blend-n">-</strong></div>
+              </div>
+            </div>
+          </div>
+        </article>
+
         <article class="hv-panel p-cyan full">
-          <h3>Comp Similarity Scores (ML Engine)</h3>
+          <h3>ML Training Metrics</h3>
+          <div class="ml-stats-grid">
+            <div class="ml-stat-card">
+              <div class="ml-stat-label">Training Samples</div>
+              <div class="ml-stat-value" id="ts-sample-count">-</div>
+            </div>
+            <div class="ml-stat-card">
+              <div class="ml-stat-label">RMSE</div>
+              <div class="ml-stat-value" id="ts-rmse">-</div>
+            </div>
+            <div class="ml-stat-card">
+              <div class="ml-stat-label">MAE</div>
+              <div class="ml-stat-value" id="ts-mae">-</div>
+            </div>
+            <div class="ml-stat-card">
+              <div class="ml-stat-label">R² Score</div>
+              <div class="ml-stat-value" id="ts-r2">-</div>
+            </div>
+            <div class="ml-stat-card">
+              <div class="ml-stat-label">MAPE</div>
+              <div class="ml-stat-value" id="ts-mape">-</div>
+            </div>
+            <div class="ml-stat-card">
+              <div class="ml-stat-label">Median AE</div>
+              <div class="ml-stat-value" id="ts-median-ae">-</div>
+            </div>
+            <div class="ml-stat-card">
+              <div class="ml-stat-label">CV Folds (LOO)</div>
+              <div class="ml-stat-value" id="ts-cv-folds">-</div>
+            </div>
+            <div class="ml-stat-card">
+              <div class="ml-stat-label">Avg Similarity</div>
+              <div class="ml-stat-value" id="ts-avg-sim">-</div>
+            </div>
+            <div class="ml-stat-card">
+              <div class="ml-stat-label">Interval Coverage</div>
+              <div class="ml-stat-value" id="ts-coverage">-</div>
+            </div>
+          </div>
+          <div class="ml-stats-detail">
+            <div class="statline"><span>Data Freshness</span><strong id="ts-freshness">-</strong></div>
+            <div class="statline"><span>Last Trained</span><strong id="ts-last-trained">-</strong></div>
+          </div>
+          <div class="ml-source-breakdown" id="ts-source-breakdown"></div>
+          <div class="ml-feature-importance" id="ts-feature-importance"></div>
+        </article>
+
+        <article class="hv-panel p-purple full">
+          <h3>K-Fold Cross-Validation</h3>
+          <div class="kfold-summary">
+            <div class="ml-stats-grid" id="kfold-summary-grid">
+              <div class="ml-stat-card">
+                <div class="ml-stat-label">K-Folds</div>
+                <div class="ml-stat-value" id="kf-nfolds">-</div>
+              </div>
+              <div class="ml-stat-card">
+                <div class="ml-stat-label">Mean RMSE</div>
+                <div class="ml-stat-value" id="kf-mean-rmse">-</div>
+              </div>
+              <div class="ml-stat-card">
+                <div class="ml-stat-label">Mean MAE</div>
+                <div class="ml-stat-value" id="kf-mean-mae">-</div>
+              </div>
+              <div class="ml-stat-card">
+                <div class="ml-stat-label">Mean R²</div>
+                <div class="ml-stat-value" id="kf-mean-r2">-</div>
+              </div>
+              <div class="ml-stat-card">
+                <div class="ml-stat-label">Mean MAPE</div>
+                <div class="ml-stat-value" id="kf-mean-mape">-</div>
+              </div>
+              <div class="ml-stat-card">
+                <div class="ml-stat-label">Overfitting</div>
+                <div class="ml-stat-value" id="kf-overfit">-</div>
+              </div>
+            </div>
+          </div>
+          <div class="kfold-chart-container">
+            <canvas id="kfold-chart" height="180"></canvas>
+          </div>
+        </article>
+
+        <article class="hv-panel p-blue full">
+          <h3>Train vs Test Split (80/20)</h3>
+          <div class="train-test-grid">
+            <div class="tt-column">
+              <h4 class="tt-header">Train Set</h4>
+              <div class="statline"><span>Size</span><strong id="tt-train-size">-</strong></div>
+              <div class="statline"><span>RMSE</span><strong id="tt-train-rmse">-</strong></div>
+              <div class="statline"><span>MAE</span><strong id="tt-train-mae">-</strong></div>
+              <div class="statline"><span>R²</span><strong id="tt-train-r2">-</strong></div>
+              <div class="statline"><span>MAPE</span><strong id="tt-train-mape">-</strong></div>
+            </div>
+            <div class="tt-column">
+              <h4 class="tt-header">Test Set</h4>
+              <div class="statline"><span>Size</span><strong id="tt-test-size">-</strong></div>
+              <div class="statline"><span>RMSE</span><strong id="tt-test-rmse">-</strong></div>
+              <div class="statline"><span>MAE</span><strong id="tt-test-mae">-</strong></div>
+              <div class="statline"><span>R²</span><strong id="tt-test-r2">-</strong></div>
+              <div class="statline"><span>MAPE</span><strong id="tt-test-mape">-</strong></div>
+            </div>
+          </div>
+          <div class="gen-gap-bar">
+            <div class="statline">
+              <span>Generalization Gap</span>
+              <strong id="tt-gen-gap">-</strong>
+            </div>
+            <div class="gen-gap-indicator" id="tt-gen-gap-bar">
+              <div class="gen-gap-fill" id="tt-gen-gap-fill"></div>
+              <span class="gen-gap-label" id="tt-gen-gap-label">-</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="hv-panel p-orange full">
+          <h3>Residual Analysis</h3>
+          <div class="ml-stats-grid">
+            <div class="ml-stat-card">
+              <div class="ml-stat-label">Bias</div>
+              <div class="ml-stat-value" id="ra-bias">-</div>
+            </div>
+            <div class="ml-stat-card">
+              <div class="ml-stat-label">Mean Residual</div>
+              <div class="ml-stat-value" id="ra-mean">-</div>
+            </div>
+            <div class="ml-stat-card">
+              <div class="ml-stat-label">Std Residual</div>
+              <div class="ml-stat-value" id="ra-std">-</div>
+            </div>
+            <div class="ml-stat-card">
+              <div class="ml-stat-label">Outliers</div>
+              <div class="ml-stat-value" id="ra-outliers">-</div>
+            </div>
+            <div class="ml-stat-card">
+              <div class="ml-stat-label">Coverage (1σ)</div>
+              <div class="ml-stat-value" id="ra-coverage">-</div>
+            </div>
+          </div>
+          <div class="residual-chart-container">
+            <canvas id="residual-chart" height="220"></canvas>
+          </div>
+        </article>
+
+        <article class="hv-panel p-blue full">
+          <h3>Valuation History</h3>
+          <div class="chart-container">
+            <canvas id="history-chart"></canvas>
+          </div>
+          <div class="chart-legend" id="chart-legend">
+            <span class="legend-item"><span class="legend-dot" style="background:var(--hv-orange)"></span> Estimate</span>
+            <span class="legend-item"><span class="legend-dot" style="background:rgba(170,136,255,0.3)"></span> Confidence Band</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#ff5555"></span> 80% LTV Threshold</span>
+          </div>
+        </article>
+
+        <article class="hv-panel p-blue full">
+          <h3>Current Listings</h3>
           <div class="table-wrap">
             <table>
               <thead>
                 <tr>
                   <th>Address</th>
-                  <th>Raw Price</th>
-                  <th>Adjusted Price</th>
-                  <th>Similarity</th>
-                  <th>Type</th>
+                  <th>List Price</th>
+                  <th>Listed</th>
+                  <th>Source</th>
                 </tr>
               </thead>
-              <tbody id="comp-scores-table"></tbody>
+              <tbody id="listing-table"></tbody>
             </table>
           </div>
         </article>
@@ -156,25 +350,27 @@
           </div>
         </article>
 
-        <article class="hv-panel p-blue full">
-          <h3>Current Listings</h3>
+        <article class="hv-panel p-cyan full">
+          <h3>Comp Similarity Scores (ML Engine)</h3>
           <div class="table-wrap">
             <table>
               <thead>
                 <tr>
                   <th>Address</th>
-                  <th>List Price</th>
-                  <th>Listed</th>
-                  <th>Source</th>
+                  <th>Raw Price</th>
+                  <th>Adjusted Price</th>
+                  <th>Similarity</th>
+                  <th>Type</th>
                 </tr>
               </thead>
-              <tbody id="listing-table"></tbody>
+              <tbody id="comp-scores-table"></tbody>
             </table>
           </div>
         </article>
       </section>
     </main>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <script src="/static/app.js"></script>
   </body>
 </html>

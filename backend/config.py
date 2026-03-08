@@ -8,10 +8,10 @@ CACHE_TTL_SECONDS = 6 * 60 * 60  # 6 hours
 
 TARGET_PROPERTY = {
     "address": "2919 Wahoo Way, Alexandria, VA 22306",
-    "squareFeet": 1866,
+    "squareFeet": 1880,
     "yearBuilt": 2022,
-    "lotSizeSqFt": 3200,
-    "bedrooms": 4,
+    "lotSizeSqFt": 896,
+    "bedrooms": 3,
     "bathrooms": 3.5,
     "currentBalance": 590166,
 }
@@ -55,29 +55,33 @@ T_CRITICAL_INF = {0.90: 1.645, 0.80: 1.282}
 
 SOURCES = [
     {
+        "label": "Redfin (22306 listings)",
+        "url": "https://www.redfin.com/zipcode/22306",
+    },
+    {
+        "label": "Redfin (nearby sales)",
+        "url": "https://www.redfin.com/zipcode/22306/filter/property-type=house,min-price=400k,max-price=900k,include=sold-3mo",
+    },
+    {
+        "label": "Movoto (22306 area)",
+        "url": "https://www.movoto.com/alexandria-va/2919-wahoo-way-22306/",
+    },
+    {
         "label": "Zillow (zestimate proxy)",
         "url": "https://www.zillow.com/homedetails/2919-Wahoo-Way-Alexandria-VA-22306/",
-    },
-    {
-        "label": "Redfin Estimate",
-        "url": "https://www.redfin.com/VA/Alexandria/2919-Wahoo-Way-22306/",
-    },
-    {
-        "label": "Realtor.com",
-        "url": "https://www.realtor.com/realestateandhomes-detail/2919-Wahoo-Way_Alexandria_VA_22306/",
     },
 ]
 
 FALLBACK_COMPARABLES = {
     "recentSales": [
-        {"address": "2917 Wahoo Way, Alexandria, VA 22306", "price": 700000, "closedDate": "2025-11-15", "squareFeet": 1900, "yearBuilt": 2022, "bedrooms": 4, "bathrooms": 3.5, "lotSizeSqFt": 3100, "source": "fallback"},
-        {"address": "2921 Wahoo Way, Alexandria, VA 22306", "price": 685000, "closedDate": "2025-09-20", "squareFeet": 1850, "yearBuilt": 2022, "bedrooms": 4, "bathrooms": 3.5, "lotSizeSqFt": 3250, "source": "fallback"},
-        {"address": "2915 Wahoo Way, Alexandria, VA 22306", "price": 710000, "closedDate": "2025-08-05", "squareFeet": 1920, "yearBuilt": 2022, "bedrooms": 4, "bathrooms": 3.5, "lotSizeSqFt": 3300, "source": "fallback"},
+        {"address": "2917 Wahoo Way, Alexandria, VA 22306", "price": 700000, "closedDate": "2025-11-15", "squareFeet": 1900, "yearBuilt": 2022, "bedrooms": 3, "bathrooms": 3.5, "lotSizeSqFt": 3100, "source": "fallback"},
+        {"address": "2921 Wahoo Way, Alexandria, VA 22306", "price": 685000, "closedDate": "2025-09-20", "squareFeet": 1850, "yearBuilt": 2022, "bedrooms": 3, "bathrooms": 3.5, "lotSizeSqFt": 3250, "source": "fallback"},
+        {"address": "2915 Wahoo Way, Alexandria, VA 22306", "price": 710000, "closedDate": "2025-08-05", "squareFeet": 1920, "yearBuilt": 2022, "bedrooms": 3, "bathrooms": 3.5, "lotSizeSqFt": 3300, "source": "fallback"},
         {"address": "6410 Richmond Hwy, Alexandria, VA 22306", "price": 650000, "closedDate": "2025-10-10", "squareFeet": 1750, "yearBuilt": 2020, "bedrooms": 3, "bathrooms": 3, "lotSizeSqFt": 4000, "source": "fallback"},
-        {"address": "2800 Popkins Ln, Alexandria, VA 22306", "price": 725000, "closedDate": "2025-07-22", "squareFeet": 2100, "yearBuilt": 2021, "bedrooms": 4, "bathrooms": 4, "lotSizeSqFt": 3500, "source": "fallback"},
+        {"address": "2800 Popkins Ln, Alexandria, VA 22306", "price": 725000, "closedDate": "2025-07-22", "squareFeet": 2100, "yearBuilt": 2021, "bedrooms": 3, "bathrooms": 4, "lotSizeSqFt": 3500, "source": "fallback"},
     ],
     "currentListings": [
-        {"address": "2923 Wahoo Way, Alexandria, VA 22306", "price": 720000, "listedDate": "2026-02-01", "squareFeet": 1880, "yearBuilt": 2022, "bedrooms": 4, "bathrooms": 3.5, "lotSizeSqFt": 3150, "source": "fallback"},
-        {"address": "6500 Tower Dr, Alexandria, VA 22306", "price": 695000, "listedDate": "2026-01-15", "squareFeet": 1800, "yearBuilt": 2021, "bedrooms": 4, "bathrooms": 3, "lotSizeSqFt": 3600, "source": "fallback"},
+        {"address": "2923 Wahoo Way, Alexandria, VA 22306", "price": 720000, "listedDate": "2026-02-01", "squareFeet": 1880, "yearBuilt": 2022, "bedrooms": 3, "bathrooms": 3.5, "lotSizeSqFt": 3150, "source": "fallback"},
+        {"address": "6500 Tower Dr, Alexandria, VA 22306", "price": 695000, "listedDate": "2026-01-15", "squareFeet": 1800, "yearBuilt": 2021, "bedrooms": 3, "bathrooms": 3, "lotSizeSqFt": 3600, "source": "fallback"},
     ],
 }

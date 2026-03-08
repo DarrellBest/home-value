@@ -328,10 +328,266 @@ td {
   font-family: "Share Tech Mono", monospace;
 }
 
+.chart-container {
+  position: relative;
+  width: 100%;
+  height: 280px;
+  margin-bottom: 8px;
+}
+
+.chart-legend {
+  display: flex;
+  gap: 18px;
+  justify-content: center;
+  font-size: 0.72rem;
+  color: var(--hv-muted);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.legend-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.ml-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.ml-stat-card {
+  border: 1px solid rgba(0, 204, 255, 0.2);
+  border-left: 4px solid var(--hv-cyan);
+  border-radius: 0 6px 6px 0;
+  padding: 10px;
+}
+
+.ml-stat-label {
+  font-family: "Orbitron", monospace;
+  font-size: 0.6rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--hv-muted);
+  margin-bottom: 4px;
+}
+
+.ml-stat-value {
+  font-size: 1rem;
+  color: var(--hv-cyan);
+  font-family: "Share Tech Mono", monospace;
+}
+
+.ml-stats-detail {
+  margin-bottom: 12px;
+}
+
+.ml-source-breakdown {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.ml-source-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(0, 204, 255, 0.2);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 0.72rem;
+}
+
+.ml-source-tag .tag-label {
+  color: var(--hv-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.ml-source-tag .tag-count {
+  color: var(--hv-cyan);
+  font-weight: bold;
+}
+
+.ml-feature-importance {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.fi-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.fi-label {
+  width: 140px;
+  font-size: 0.7rem;
+  color: var(--hv-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  flex-shrink: 0;
+}
+
+.fi-bar-wrap {
+  flex: 1;
+  position: relative;
+  background: rgba(0, 204, 255, 0.08);
+  border-radius: 3px;
+  height: 16px;
+}
+
+.fi-bar {
+  height: 100%;
+  background: linear-gradient(90deg, rgba(0, 204, 255, 0.3), rgba(0, 204, 255, 0.6));
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+.fi-value {
+  font-size: 0.68rem;
+  color: var(--hv-text);
+  min-width: 40px;
+  text-align: right;
+}
+
+/* K-Fold CV chart container */
+.kfold-chart-container {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  margin-top: 12px;
+}
+
+/* Train-Test Split */
+.train-test-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.tt-column {
+  border: 1px solid rgba(68, 136, 255, 0.2);
+  border-left: 4px solid var(--hv-blue);
+  border-radius: 0 6px 6px 0;
+  padding: 10px;
+}
+
+.tt-header {
+  margin: 0 0 8px;
+  font-family: "Orbitron", monospace;
+  font-size: 0.66rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--hv-blue);
+}
+
+/* Generalization gap indicator */
+.gen-gap-bar {
+  margin-top: 8px;
+}
+
+.gen-gap-indicator {
+  position: relative;
+  background: rgba(255, 153, 0, 0.08);
+  border-radius: 4px;
+  height: 22px;
+  margin-top: 6px;
+  overflow: hidden;
+}
+
+.gen-gap-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: #00ff88;
+  transition: width 0.4s ease, background 0.3s ease;
+}
+
+.gen-gap-label {
+  position: absolute;
+  right: 8px;
+  top: 3px;
+  font-size: 0.72rem;
+  font-family: "Share Tech Mono", monospace;
+  color: #00ff88;
+}
+
+/* Residual chart */
+.residual-chart-container {
+  position: relative;
+  width: 100%;
+  height: 240px;
+  margin-top: 12px;
+}
+
+/* Component Accuracy Comparison */
+.component-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.component-metric-card {
+  border: 1px solid rgba(255, 153, 0, 0.2);
+  border-top: 4px solid var(--hv-orange);
+  border-radius: 0 0 6px 6px;
+  padding: 14px;
+  text-align: center;
+}
+
+.component-metric-card h4 {
+  margin: 0 0 8px;
+  font-family: "Orbitron", monospace;
+  font-size: 0.66rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--hv-orange);
+}
+
+.component-metric-big {
+  font-size: 1.6rem;
+  font-family: "Share Tech Mono", monospace;
+  color: var(--hv-orange);
+  margin: 4px 0;
+}
+
+.component-metric-label {
+  font-family: "Orbitron", monospace;
+  font-size: 0.55rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--hv-muted);
+  margin-bottom: 10px;
+}
+
+.component-metric-card .stats-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  text-align: left;
+}
+
+.component-metric-card .statline {
+  font-size: 0.72rem;
+}
+
 @media (max-width: 960px) {
   .hv-grid { grid-template-columns: 1fr; }
   .full { grid-column: auto; }
   .lcars-topbar { grid-template-columns: 1fr; }
   .lcars-pill { min-height: 34px; }
   .interval-grid, .stats-row { grid-template-columns: 1fr; }
+  .ml-stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .train-test-grid { grid-template-columns: 1fr; }
+  .component-metrics-grid { grid-template-columns: 1fr; }
 }

@@ -8,8 +8,9 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from .config import FRONTEND_DIR, CACHE_TTL_SECONDS
+from .config import FRONTEND_DIR, CACHE_TTL_SECONDS, TARGET_PROPERTY
 from .valuation import HomeValueService
+from .db import init_db, get_connection, get_valuation_history, get_target_property_id
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(message)s")
 logger = logging.getLogger("home_value")
@@ -31,6 +32,8 @@ async def _daily_refresh_loop():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global _scheduler_task
+    # Initialize database
+    init_db()
     # Startup: trigger initial fetch and start scheduler
     asyncio.create_task(service.get_data())
     _scheduler_task = asyncio.create_task(_daily_refresh_loop())
@@ -55,10 +58,39 @@ async def get_valuation(refresh: int = 0):
     return JSONResponse(content=data)
 
 
+@app.get("/api/valuation/history")
+async def valuation_history(weeks: int = 52):
+    weeks = min(max(1, weeks), 260)
+    conn = get_connection()
+    try:
+        prop_id = get_target_property_id(conn)
+        history = get_valuation_history(conn, prop_id, weeks)
+    finally:
+        conn.close()
+
+    # Add LTV threshold for chart
+    balance = TARGET_PROPERTY["currentBalance"]
+    ltv_threshold = round(balance / 0.8)
+
+    return JSONResponse(content={
+        "history": history,
+        "ltvThreshold": ltv_threshold,
+        "currentBalance": balance,
+    })
+
+
 @app.post("/api/refresh")
 async def force_refresh():
     data = await service.force_refresh()
     return JSONResponse(content=data)
+
+
+@app.post("/api/update")
+async def run_update():
+    """Trigger a full data fetch + retrain cycle."""
+    from .training import run_weekly_update
+    result = await run_weekly_update()
+    return JSONResponse(content=result)
 
 
 @app.get("/")
