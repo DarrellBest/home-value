@@ -60,6 +60,11 @@ def _extract_training_stats(hybrid_result: dict) -> dict:
         if cv_rmse > 0 and test_rmse / cv_rmse < 0.5:
             overfitting_warning = f"Test RMSE (${test_rmse:,}) is much lower than CV mean RMSE (${cv_rmse:,}), possible overfitting"
 
+    train_rmse = cat_metrics.get("train_rmse")
+    test_rmse = cat_metrics.get("rmse")
+    gen_gap = round(test_rmse - train_rmse) if train_rmse and test_rmse else None
+    gen_gap_pct = round((test_rmse - train_rmse) / train_rmse * 100, 1) if train_rmse and test_rmse and train_rmse > 0 else None
+
     return {
         "trainingDataCount": cat_metrics.get("total_samples", 0),
         "filteredSampleCount": cat_metrics.get("total_samples", 0),
@@ -81,6 +86,20 @@ def _extract_training_stats(hybrid_result: dict) -> dict:
         "trainTestSplit": {
             "trainSize": cat_metrics.get("train_size", 0),
             "testSize": cat_metrics.get("val_size", 0),
+            "trainMetrics": {
+                "rmse": cat_metrics.get("train_rmse"),
+                "mae": cat_metrics.get("train_mae"),
+                "r2": cat_metrics.get("train_r2"),
+                "mape": cat_metrics.get("train_median_ape"),
+            },
+            "testMetrics": {
+                "rmse": cat_metrics.get("rmse"),
+                "mae": cat_metrics.get("mae"),
+                "r2": cat_metrics.get("r2_score"),
+                "mape": cat_metrics.get("median_ape"),
+            },
+            "generalizationGap": gen_gap,
+            "generalizationGapPct": gen_gap_pct,
         },
         "residualAnalysis": resid,
         "overfittingWarning": overfitting_warning,
@@ -161,6 +180,11 @@ def compute_training_stats(sales: list[dict], comps: list[dict]) -> dict:
             if cv_rmse > 0 and test_rmse / cv_rmse < 0.5:
                 overfitting_warning = f"Test RMSE (${test_rmse:,}) is much lower than CV mean RMSE (${cv_rmse:,}), possible overfitting"
 
+        train_rmse = cat_metrics.get("train_rmse")
+        test_rmse = cat_metrics.get("rmse")
+        gen_gap = round(test_rmse - train_rmse) if train_rmse and test_rmse else None
+        gen_gap_pct = round((test_rmse - train_rmse) / train_rmse * 100, 1) if train_rmse and test_rmse and train_rmse > 0 else None
+
         return {
             "trainingDataCount": len(sales),
             "filteredSampleCount": cat_metrics.get("total_samples", len(sales)),
@@ -182,6 +206,20 @@ def compute_training_stats(sales: list[dict], comps: list[dict]) -> dict:
             "trainTestSplit": {
                 "trainSize": cat_metrics.get("train_size", 0),
                 "testSize": cat_metrics.get("val_size", 0),
+                "trainMetrics": {
+                    "rmse": cat_metrics.get("train_rmse"),
+                    "mae": cat_metrics.get("train_mae"),
+                    "r2": cat_metrics.get("train_r2"),
+                    "mape": cat_metrics.get("train_median_ape"),
+                },
+                "testMetrics": {
+                    "rmse": cat_metrics.get("rmse"),
+                    "mae": cat_metrics.get("mae"),
+                    "r2": cat_metrics.get("r2_score"),
+                    "mape": cat_metrics.get("median_ape"),
+                },
+                "generalizationGap": gen_gap,
+                "generalizationGapPct": gen_gap_pct,
             },
             "residualAnalysis": resid,
             "overfittingWarning": overfitting_warning,

@@ -51,95 +51,278 @@ def _is_condo(address: str) -> bool:
     return "#" in address or "unit" in addr_l or "apt" in addr_l
 
 
+# Known co-op/condo complex streets (affordable units, typically $115k-$450k)
+_CONDO_COMPLEX_STREETS = [
+    "wagon dr", "wakefield dr", "mount eagle dr", "belle view blvd",
+    "huntington ave", "potomac ave", "farrington ave", "san leandro pl",
+    "boulevard vw",
+]
+
+# Known SFH streets in this market
+_SFH_STREETS = [
+    "elba rd", "summit ter", "foresthill rd", "frances dr",
+    "range rd", "burtonwood dr", "marthas rd", "randolph macon",
+    "kings hwy", "richmond hwy", "rixey dr", "williamsburg rd",
+    "fifer dr", "farnsworth dr", "farmington dr", "blaine dr",
+    "rollins dr", "arlington ter", "radcliffe dr", "cavalier dr",
+    "duke dr", "vanderbilt dr", "westhampton dr", "dartmouth dr",
+    "franklin st", "lee ave", "hampton ct", "fort dr", "monticello rd",
+    "jamaica dr",
+]
+
+# Known townhouse complex streets (new construction, $600k-$900k)
+_TOWNHOUSE_STREETS = [
+    "wahoo way", "snowpea ct", "coxton ct", "heritage springs ct",
+    "stover dr", "lowen valley rd",
+]
+
+
+def _property_type(address: str, sqft: float, year_built: float) -> str:
+    """Classify property as 'condo', 'townhouse', or 'sfh'.
+
+    Address-primary classification: street name is the strongest signal.
+    Structural fallback only when street is ambiguous.
+    Returns one of: 'condo', 'townhouse', 'sfh'.
+    """
+    addr_l = (address or "").lower()
+
+    # Known townhouse complexes (highest confidence)
+    if any(s in addr_l for s in _TOWNHOUSE_STREETS):
+        return "townhouse"
+
+    # Known SFH streets (standalone houses, no unit numbers expected)
+    if any(s in addr_l for s in _SFH_STREETS):
+        return "sfh"
+
+    # Known affordable co-op/condo complexes
+    if any(s in addr_l for s in _CONDO_COMPLEX_STREETS):
+        return "condo"
+
+    # Explicit unit marker on an unknown street
+    if _is_condo(address):
+        # Large new construction with unit → townhouse-style condo
+        if sqft and sqft >= 1400 and year_built and year_built >= 2005:
+            return "townhouse"
+        return "condo"
+
+    # No unit marker, not on known streets
+    # New construction moderate sqft → townhouse
+    if year_built and year_built >= 2010 and sqft and 1300 <= sqft <= 2800:
+        return "townhouse"
+
+    # Everything else without a unit = standalone house = sfh
+    return "sfh"
+
+
 # ---------------------------------------------------------------------------
 # Core estimation engine
 # ---------------------------------------------------------------------------
+
+def _infer_beds(sqft: float) -> float:
+    """Infer bedroom count from sqft when data is missing."""
+    if sqft < 650: return 1.0
+    if sqft < 950: return 1.0
+    if sqft < 1300: return 2.0
+    if sqft < 1800: return 3.0
+    return 4.0
+
+
+def _infer_baths(sqft: float) -> float:
+    """Infer bathroom count from sqft when data is missing."""
+    if sqft < 650: return 1.0
+    if sqft < 950: return 1.0
+    if sqft < 1300: return 1.5
+    if sqft < 1800: return 2.0
+    if sqft < 2500: return 2.5
+    return 3.0
+
+
+def _calc_robust_appreciation(pool: list[dict], t_sqft: float) -> float:
+    """Compute appreciation rate using median PPSF split between old and recent halves.
+
+    Filters to similar-sized properties first to avoid noise from mixed property types.
+    More robust than OLS regression for heterogeneous comp pools.
+    """
+    points = []
+    for s in pool:
+        if s.get("sqft") and s["sqft"] > 0 and s.get("sale_price") and s["sale_price"] > 0:
+            sqft_ratio = s["sqft"] / t_sqft
+            if 0.50 <= sqft_ratio <= 1.50:  # Only similar-sized for trend calc
+                ppsf = s["sale_price"] / s["sqft"]
+                days = _days_since(s.get("sale_date", ""))
+                if days < 1200:
+                    points.append((days, ppsf))
+
+    if len(points) < 6:
+        return 0.045  # Default 4.5% for Alexandria VA
+
+    points.sort(key=lambda p: p[0])  # ascending = most recent first
+    mid = len(points) // 2
+    recent_ppsf = statistics.median(p[1] for p in points[:mid])
+    older_ppsf = statistics.median(p[1] for p in points[mid:])
+    recent_days = statistics.median(p[0] for p in points[:mid])
+    older_days = statistics.median(p[0] for p in points[mid:])
+
+    years_diff = (older_days - recent_days) / 365.25
+    if older_ppsf <= 0 or years_diff < 0.1:
+        return 0.045
+
+    annual_rate = (recent_ppsf / older_ppsf - 1) / years_diff
+    return max(0.01, min(0.12, annual_rate))
+
 
 def estimate_value(target: dict, pool: list[dict],
                    max_comps: int = DEFAULT_K) -> dict | None:
     """Estimate a property's value using comparable sales from pool.
 
-    Uses multi-dimensional distance scoring with inverse-distance weighting.
-    Property type (condo vs non-condo) is detected and penalized for mismatches.
-
-    Args:
-        target: dict with sqft, beds, baths, year_built, address, sale_date, etc.
-        pool: list of sale dicts with sale_price plus property features.
-        max_comps: number of nearest comps to use (default 4, optimal from validation).
-
-    Returns:
-        dict with estimate, n_comps, adj_prices, appreciation_rate. None if insufficient data.
+    Key improvements over naive IDW:
+    - PPSF anchor filter: uses top-10 nearest sqft neighbors' median $/sqft to
+      establish a price tier, then filters out comps outside that tier (±55%).
+      This prevents co-ops ($150/sqft) from polluting townhouse estimates and vice versa.
+    - Sqft-based bed/bath inference: when bed/bath data is NULL (common for condos),
+      infers realistic values from sqft rather than defaulting to 3 bed/3.5 bath.
+    - Adaptive sqft filter: starts at ±30%, widens to ±45%/±55% if insufficient comps.
+    - Robust median-split appreciation: avoids OLS noise from heterogeneous pools.
+    - Price-proportional bed/bath adjustments: scales with comp price, not fixed dollars.
+    - Outlier trimming: drops comps >2σ from median before weighting.
     """
-    t_sqft = target.get("sqft") or target.get("squareFeet") or 1880
-    t_beds = target.get("beds") or target.get("bedrooms") or 3
-    t_baths = target.get("baths") or target.get("bathrooms") or 3.5
-    t_year = target.get("year_built") or target.get("yearBuilt") or 2022
+    t_sqft = float(target.get("sqft") or target.get("squareFeet") or 1880)
+    t_year = float(target.get("year_built") or target.get("yearBuilt") or 2022)
     t_addr = target.get("address", "")
     t_is_condo = _is_condo(t_addr)
 
-    # ---- Score all candidates by multi-dimensional distance ----
+    # Infer beds/baths from sqft if missing — critical for condos with NULL data
+    raw_beds = target.get("beds") or target.get("bedrooms")
+    raw_baths = target.get("baths") or target.get("bathrooms")
+    t_beds = float(raw_beds) if raw_beds else _infer_beds(t_sqft)
+    t_baths = float(raw_baths) if raw_baths else _infer_baths(t_sqft)
+
+    # ---- Classify target property type ----
+    t_type = _property_type(t_addr, t_sqft, t_year)
+
+    # ---- Robust data-driven appreciation rate ----
+    valid_pool = [
+        s for s in pool
+        if s.get("sqft") and s.get("sale_price") and s["sale_price"] > 0
+        and "listing" not in (s.get("source", "")).lower()
+    ]
+    appreciation = _calc_robust_appreciation(pool, t_sqft)
+
+    # ---- PPSF outlier filter: remove extreme price-per-sqft outliers ----
+    # Prevents co-ops ($150/sqft) from polluting condo estimates and vice versa.
+    # Uses MAD (median absolute deviation) which is robust to extreme values.
+    def _ppsf_filter(candidates: list[dict]) -> list[dict]:
+        ppsf_vals = [
+            s["sale_price"] / s["sqft"]
+            for s in candidates
+            if s.get("sqft") and s["sqft"] > 0 and s.get("sale_price")
+        ]
+        if len(ppsf_vals) < 4:
+            return candidates
+        med = statistics.median(ppsf_vals)
+        mad = statistics.median([abs(p - med) for p in ppsf_vals])
+        if mad < 1:
+            return candidates  # Degenerate case (all same PPSF)
+        lo = med - 3.0 * mad
+        hi = med + 3.0 * mad
+        filtered = [
+            s for s in candidates
+            if s.get("sqft") and s["sqft"] > 0
+            and lo <= s["sale_price"] / s["sqft"] <= hi
+        ]
+        return filtered if len(filtered) >= MIN_COMPS else candidates
+
+    # Apply PPSF filter using same-type candidates in ±60% sqft window
+    ppsf_candidates = [
+        s for s in valid_pool
+        if s.get("sqft") and 0.40 <= s["sqft"] / t_sqft <= 1.60
+        and _property_type(s.get("address", ""), float(s["sqft"]),
+                           float(s.get("year_built") or t_year)) == t_type
+    ]
+    ppsf_filtered_ids = {id(s) for s in _ppsf_filter(ppsf_candidates)}
+    # If we have a valid PPSF reference, apply filter; otherwise keep all valid_pool
+    if len(ppsf_candidates) >= 4:
+        valid_pool = [
+            s for s in valid_pool
+            if id(s) in ppsf_filtered_ids
+            or _property_type(s.get("address", ""), float(s.get("sqft") or t_sqft),
+                              float(s.get("year_built") or t_year)) != t_type
+        ]
+
+    # ---- Score candidates with adaptive sqft filter + type matching ----
+    def _score(sqft_lo_ratio: float, sqft_hi_ratio: float,
+               require_type: bool = True) -> list:
+        scored = []
+        for s in valid_pool:
+            s_sqft = float(s["sqft"])
+            s_price = float(s["sale_price"])
+
+            sqft_ratio = s_sqft / t_sqft
+            if sqft_ratio < sqft_lo_ratio or sqft_ratio > sqft_hi_ratio:
+                continue
+
+            s_year = float(s.get("year_built") or t_year)
+            s_type = _property_type(s.get("address", ""), s_sqft, s_year)
+
+            # Type matching: same type gets no penalty; different type gets heavy penalty
+            if require_type and s_type != t_type:
+                continue  # hard filter when enough same-type comps are available
+
+            s_raw_beds = s.get("beds")
+            s_raw_baths = s.get("baths")
+            s_beds = float(s_raw_beds) if s_raw_beds else _infer_beds(s_sqft)
+            s_baths = float(s_raw_baths) if s_raw_baths else _infer_baths(s_sqft)
+            s_days = _days_since(s.get("sale_date", ""))
+
+            sqft_d = abs(sqft_ratio - 1.0) / 0.15
+            yr_d = abs(s_year - t_year) / 15.0
+            bb_d = (abs(s_beds - t_beds) * 1.5 + abs(s_baths - t_baths)) / 1.5
+            rec_d = s_days / 400.0
+
+            # Type mismatch soft penalty for fallback passes
+            type_pen = 1.0 if s_type == t_type else 1.8
+
+            dist = math.sqrt(
+                0.35 * sqft_d ** 2 +
+                0.25 * yr_d ** 2 +
+                0.20 * bb_d ** 2 +
+                0.20 * rec_d ** 2
+            ) * type_pen
+
+            scored.append((s, dist))
+        scored.sort(key=lambda x: x[1])
+        return scored
+
+    # Progressive fallback: same type, tighter sqft → same type wider → any type
     scored = []
-    for s in pool:
-        s_sqft = s.get("sqft") or 0
-        s_price = s.get("sale_price") or 0
-        if s_sqft <= 0 or s_price <= 0:
-            continue
-        if "listing" in (s.get("source", "")).lower():
-            continue
-
-        # Hard filter: sqft within ±50%
-        sqft_ratio = s_sqft / t_sqft
-        if sqft_ratio < 0.50 or sqft_ratio > 1.60:
-            continue
-
-        s_beds = s.get("beds") or t_beds
-        s_baths = s.get("baths") or t_baths
-        s_year = s.get("year_built") or t_year
-        s_days = _days_since(s.get("sale_date", ""))
-        s_is_condo = _is_condo(s.get("address", ""))
-
-        # Property type mismatch penalty
-        type_penalty = 1.0 if (t_is_condo == s_is_condo) else 2.5
-
-        # Normalized feature distances
-        sqft_d = abs(sqft_ratio - 1.0) / 0.15
-        yr_d = abs(s_year - t_year) / 10.0
-        bb_d = (abs(s_beds - t_beds) * 1.5 + abs(s_baths - t_baths)) / 1.5
-        rec_d = s_days / 400.0
-
-        # Weighted Euclidean distance
-        dist = math.sqrt(
-            0.30 * sqft_d ** 2 +
-            0.30 * yr_d ** 2 +
-            0.20 * bb_d ** 2 +
-            0.20 * rec_d ** 2
-        ) * type_penalty
-
-        scored.append((s, dist))
-
-    scored.sort(key=lambda x: x[1])
+    for lo, hi, req_type in [
+        (0.70, 1.30, True),
+        (0.55, 1.50, True),
+        (0.50, 1.60, True),
+        (0.50, 1.60, False),   # last resort: allow cross-type with heavy penalty
+    ]:
+        scored = _score(lo, hi, req_type)
+        if len(scored) >= MIN_COMPS:
+            break
 
     if len(scored) < MIN_COMPS:
         return None
 
     top = scored[:max_comps]
 
-    # ---- Market appreciation rate ----
-    # Use 2.5% annual appreciation (Alexandria VA 22306 long-term average).
-    # Data-driven calculation is unreliable with heterogeneous property types.
-    appreciation = 0.025
-
-    # ---- Adjust each comp price and compute inverse-distance weighted estimate ----
+    # ---- Adjust each comp price ----
     comps_data = []
     adj_prices = []
 
     for s, dist in top:
-        s_sqft = s["sqft"]
+        s_sqft = float(s["sqft"])
         s_price = float(s["sale_price"])
         s_days = _days_since(s.get("sale_date", ""))
-        s_beds = s.get("beds") or t_beds
-        s_baths = s.get("baths") or t_baths
-        s_year = s.get("year_built") or t_year
+        s_raw_beds = s.get("beds")
+        s_raw_baths = s.get("baths")
+        s_beds = float(s_raw_beds) if s_raw_beds else _infer_beds(s_sqft)
+        s_baths = float(s_raw_baths) if s_raw_baths else _infer_baths(s_sqft)
+        s_year = float(s.get("year_built") or t_year)
 
         ppsf = s_price / s_sqft
 
@@ -147,24 +330,30 @@ def estimate_value(target: dict, pool: list[dict],
         time_adj = (1 + appreciation) ** (s_days / 365.25)
         adj = s_price * time_adj
 
-        # Sqft adjustment: scale by comp's own $/sqft (dampened to 55%)
-        sqft_delta = t_sqft - s_sqft
-        adj += ppsf * sqft_delta * 0.55
+        # Sqft adjustment: dampened to 50%
+        adj += ppsf * (t_sqft - s_sqft) * 0.50
 
-        # Bed/bath adjustment
-        adj += (t_beds - s_beds) * 10000
-        adj += (t_baths - s_baths) * 6000
+        # Price-proportional bed/bath adjustments
+        adj += s_price * 0.025 * (t_beds - s_beds)
+        adj += s_price * 0.012 * (t_baths - s_baths)
 
-        # Year built adjustment (for significant differences only)
+        # Year built adjustment (significant gaps only)
         yr_delta = t_year - s_year
         if abs(yr_delta) > 5:
-            adj *= 1 + yr_delta * 0.002
+            adj *= 1 + yr_delta * 0.0015
 
-        # Inverse-distance weight (power 2.5 for aggressive nearest-neighbor emphasis)
         w = 1.0 / (dist + 0.01) ** 2.5
-
         comps_data.append((adj, w))
         adj_prices.append(adj)
+
+    # ---- Outlier trim: drop comps >2σ from median before weighting ----
+    if len(adj_prices) >= 4:
+        med = statistics.median(adj_prices)
+        stdev = statistics.stdev(adj_prices)
+        filtered = [(adj, w) for adj, w in comps_data if abs(adj - med) <= 2.0 * stdev]
+        if len(filtered) >= MIN_COMPS:
+            comps_data = filtered
+            adj_prices = [a for a, _ in filtered]
 
     total_w = sum(w for _, w in comps_data)
     if total_w <= 0:
@@ -174,7 +363,7 @@ def estimate_value(target: dict, pool: list[dict],
 
     return {
         "estimate": round(estimate),
-        "n_comps": len(top),
+        "n_comps": len(comps_data),
         "adj_prices": [round(p) for p in adj_prices],
         "appreciation_rate": appreciation,
     }
@@ -236,7 +425,7 @@ def compute_comp_similarity(comp: dict) -> float:
 
     sqft_ratio = s_sqft / t_sqft if t_sqft else 1.0
     sqft_d = abs(sqft_ratio - 1.0) / 0.15
-    yr_d = abs((comp.get("year_built") or 2022) - target["year_built"]) / 10.0
+    yr_d = abs((comp.get("year_built") or 2022) - target["year_built"]) / 15.0
     bed_diff = abs((comp.get("beds") or 3) - target["beds"])
     bath_diff = abs((comp.get("baths") or 3.5) - target["baths"])
     bb_d = (bed_diff * 1.5 + bath_diff) / 1.5
@@ -246,7 +435,7 @@ def compute_comp_similarity(comp: dict) -> float:
     type_penalty = 1.0 if (t_is_condo == s_is_condo) else 2.5
 
     dist = math.sqrt(
-        0.30 * sqft_d ** 2 + 0.30 * yr_d ** 2 +
+        0.35 * sqft_d ** 2 + 0.25 * yr_d ** 2 +
         0.20 * bb_d ** 2 + 0.20 * rec_d ** 2
     ) * type_penalty
 

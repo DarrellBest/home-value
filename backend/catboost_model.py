@@ -224,6 +224,18 @@ def train_catboost(sales: list[dict]) -> dict:
     model = CatBoostRegressor(**params)
     model.fit(train_pool, eval_set=val_pool, verbose=0)
 
+    # Train set metrics (for generalization gap)
+    train_preds_log = model.predict(X_train)
+    train_preds = np.exp(train_preds_log)
+    train_actuals = np.exp(y_train)
+    train_ape = np.abs((train_preds - train_actuals) / train_actuals) * 100
+    train_median_ape = float(np.median(train_ape))
+    train_mae = float(np.mean(np.abs(train_preds - train_actuals)))
+    train_rmse = float(np.sqrt(np.mean((train_preds - train_actuals) ** 2)))
+    train_ss_res = float(np.sum((train_actuals - train_preds) ** 2))
+    train_ss_tot = float(np.sum((train_actuals - np.mean(train_actuals)) ** 2))
+    train_r2 = 1.0 - (train_ss_res / train_ss_tot) if train_ss_tot > 0 else 0.0
+
     # Validation metrics (in log space and real space)
     val_preds_log = model.predict(X_val)
     val_preds = np.exp(val_preds_log)
@@ -396,6 +408,9 @@ def train_catboost(sales: list[dict]) -> dict:
     seasonal = SEASONAL_FACTORS[datetime.now().month - 1]
     catboost_estimate = round(estimate * seasonal)
 
+    # Coverage within 1 std dev of residuals
+    within_1std = float(np.mean(np.abs(residuals) <= res_std) * 100) if len(residuals) > 0 else 0.0
+
     metrics = {
         "median_ape": round(median_ape, 2),
         "mae": round(mae),
@@ -406,6 +421,10 @@ def train_catboost(sales: list[dict]) -> dict:
         "train_size": len(X_train),
         "val_size": len(X_val),
         "total_samples": len(X),
+        "train_rmse": round(train_rmse),
+        "train_mae": round(train_mae),
+        "train_r2": round(train_r2, 4),
+        "train_median_ape": round(train_median_ape, 2),
         "residual_std_log": round(residual_std_log, 4),
         "pred_std_log": round(pred_std_log, 4),
         "best_iteration": final_model.get_best_iteration() or params["iterations"],
@@ -415,6 +434,7 @@ def train_catboost(sales: list[dict]) -> dict:
             "residuals": residual_list,
             "outliers": outliers,
             "outlierCount": len(outliers),
+            "predictionIntervalCoverage": round(within_1std, 1),
         },
         "kFoldCV": kfold_summary,
     }

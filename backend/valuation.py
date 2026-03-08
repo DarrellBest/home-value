@@ -803,7 +803,7 @@ class HomeValueService:
         source_values = [s["extractedValue"] for s in source_results if s.get("ok") and s.get("extractedValue")]
 
         estimate = ml["estimate"]
-        methodology = "ML-Weighted Kernel Regression"
+        methodology = "Hybrid AVM (Comp + CatBoost + Trend)"
 
         if not estimate and source_values:
             source_values.sort()

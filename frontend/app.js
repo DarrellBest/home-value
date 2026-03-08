@@ -172,7 +172,7 @@ function renderComponentMetrics(cm) {
   setComp("cm-blend", cm.blend);
 }
 
-function renderTrainingStats(ts) {
+function renderTrainingStats(ts, validationDetails) {
   if (!ts) return;
 
   renderComponentMetrics(ts.componentMetrics);
@@ -187,7 +187,7 @@ function renderTrainingStats(ts) {
   setText("ts-median-ae", ts.medianAE != null ? formatMoney(ts.medianAE) : "-");
 
   const ra = ts.residualAnalysis;
-  setText("ts-coverage", ra?.predictionIntervalCoverage != null ? ra.predictionIntervalCoverage + "%" : "-");
+  setText("ts-coverage", ra?.predictionIntervalCoverage != null ? ra.predictionIntervalCoverage.toFixed(1) + "%" : "-");
 
   if (ts.dataFreshness) {
     const oldest = ts.dataFreshness.oldest || "?";
@@ -223,7 +223,7 @@ function renderTrainingStats(ts) {
 
   renderKFoldCV(ts.kFoldCV, ts.overfittingWarning);
   renderTrainTestSplit(ts.trainTestSplit);
-  renderResidualAnalysis(ts.residualAnalysis, data.valuation?.mlDetails?.validation?.details || []);
+  renderResidualAnalysis(ts.residualAnalysis, validationDetails || []);
 }
 
 function renderKFoldCV(kf, overfitWarning) {
@@ -233,7 +233,7 @@ function renderKFoldCV(kf, overfitWarning) {
   setText("kf-mean-rmse", kf.mean?.rmse != null ? formatMoney(kf.mean.rmse) + " \u00B1" + formatMoney(kf.std?.rmse || 0) : "-");
   setText("kf-mean-mae", kf.mean?.mae != null ? formatMoney(kf.mean.mae) + " \u00B1" + formatMoney(kf.std?.mae || 0) : "-");
   setText("kf-mean-r2", kf.mean?.r2 != null ? kf.mean.r2.toFixed(2) + " \u00B1" + (kf.std?.r2 || 0).toFixed(2) : "-");
-  setText("kf-mean-mape", kf.mean?.median_ape != null ? kf.mean.mape.toFixed(1) + "%" : "-");
+  setText("kf-mean-mape", kf.mean?.median_ape != null ? kf.mean.median_ape.toFixed(1) + "%" : "-");
 
   const overfitEl = document.getElementById("kf-overfit");
   if (overfitEl) {
@@ -312,18 +312,21 @@ function renderKFoldCV(kf, overfitWarning) {
 }
 
 function renderTrainTestSplit(tt) {
-  if (!tt || !tt.trainMetrics) return;
+  if (!tt) return;
 
-  setText("tt-train-size", tt.trainSize + " samples");
-  setText("tt-test-size", tt.testSize + " samples");
-  setText("tt-train-rmse", tt.trainMetrics.rmse != null ? formatMoney(tt.trainMetrics.rmse) : "-");
-  setText("tt-train-mae", tt.trainMetrics.mae != null ? formatMoney(tt.trainMetrics.mae) : "-");
-  setText("tt-train-r2", tt.trainMetrics.r2 != null ? tt.trainMetrics.r2.toFixed(4) : "-");
-  setText("tt-train-mape", tt.trainMetrics.mape != null ? tt.trainMetrics.mape.toFixed(1) + "%" : "-");
-  setText("tt-test-rmse", tt.testMetrics.rmse != null ? formatMoney(tt.testMetrics.rmse) : "-");
-  setText("tt-test-mae", tt.testMetrics.mae != null ? formatMoney(tt.testMetrics.mae) : "-");
-  setText("tt-test-r2", tt.testMetrics.r2 != null ? tt.testMetrics.r2.toFixed(4) : "-");
-  setText("tt-test-mape", tt.testMetrics.mape != null ? tt.testMetrics.mape.toFixed(1) + "%" : "-");
+  setText("tt-train-size", tt.trainSize != null ? tt.trainSize + " samples" : "-");
+  setText("tt-test-size", tt.testSize != null ? tt.testSize + " samples" : "-");
+
+  const tr = tt.trainMetrics || {};
+  const te = tt.testMetrics || {};
+  setText("tt-train-rmse", tr.rmse != null ? formatMoney(tr.rmse) : "-");
+  setText("tt-train-mae", tr.mae != null ? formatMoney(tr.mae) : "-");
+  setText("tt-train-r2", tr.r2 != null ? tr.r2.toFixed(4) : "-");
+  setText("tt-train-mape", tr.mape != null ? tr.mape.toFixed(1) + "%" : "-");
+  setText("tt-test-rmse", te.rmse != null ? formatMoney(te.rmse) : "-");
+  setText("tt-test-mae", te.mae != null ? formatMoney(te.mae) : "-");
+  setText("tt-test-r2", te.r2 != null ? te.r2.toFixed(4) : "-");
+  setText("tt-test-mape", te.mape != null ? te.mape.toFixed(1) + "%" : "-");
 
   // Generalization gap indicator
   const gapPct = tt.generalizationGapPct;
@@ -361,7 +364,7 @@ function renderResidualAnalysis(ra, validationDetails) {
   setText("ra-mean", ra.bias != null ? formatMoney(ra.bias) : "-");
   setText("ra-std", ra.std != null ? formatMoney(ra.std) : "-");
   setText("ra-outliers", ra.outlierCount != null ? ra.outlierCount + " flagged" : "-");
-  // Interval coverage not yet implemented in backend
+  setText("ra-coverage", ra.predictionIntervalCoverage != null ? ra.predictionIntervalCoverage.toFixed(1) + "%" : "-");
 
   // Residual scatter chart: predicted vs actual
   const canvas = document.getElementById("residual-chart");
@@ -503,9 +506,14 @@ function render(data) {
     );
   }
 
+  const estimate = data.valuation?.estimate;
+  const balance = data.financials?.ltv?.currentBalance;
+  const equity = (estimate && balance) ? estimate - balance : null;
+  setText("equity-value", equity != null ? formatMoney(equity) : "$-");
+
   renderSources(data.sources);
   renderMlDetails(data.valuation?.mlDetails);
-  renderTrainingStats(data.trainingStats);
+  renderTrainingStats(data.trainingStats, data.valuation?.mlDetails?.validation?.details || []);
 
   const status = document.getElementById("hv-refresh-status");
   if (status) {
