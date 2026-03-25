@@ -294,12 +294,14 @@ def estimate_value(target: dict, pool: list[dict],
         return scored
 
     # Progressive fallback: same type, tighter sqft → same type wider → any type
+    # Max sqft window capped at ±40% to prevent mismatched size contamination
+    # (e.g. 1,088 sqft units diluting estimates for 1,880 sqft townhouses)
     scored = []
     for lo, hi, req_type in [
-        (0.70, 1.30, True),
-        (0.55, 1.50, True),
-        (0.50, 1.60, True),
-        (0.50, 1.60, False),   # last resort: allow cross-type with heavy penalty
+        (0.75, 1.25, True),   # ±25% sqft, same type
+        (0.65, 1.35, True),   # ±35% sqft, same type
+        (0.60, 1.40, True),   # ±40% sqft, same type
+        (0.60, 1.40, False),  # last resort: ±40% sqft, any type with penalty
     ]:
         scored = _score(lo, hi, req_type)
         if len(scored) >= MIN_COMPS:
